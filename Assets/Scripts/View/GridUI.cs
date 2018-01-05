@@ -6,25 +6,26 @@ using System;
 
 public class GridUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
-    public static Action OnEnter;
-    public static Action OnEixt;
+    public static Action<Transform> OnEnter;
+    public static Action OnExit;
 
     //通过继承IPointerEnterHandler接口实现函数
     public void OnPointerEnter(PointerEventData eventData)
     {        
         //pointerEnter是鼠标进入的gameObject对象
         if (eventData.pointerEnter.tag == "Grid")
-        {
-            Debug.Log(eventData.pointerEnter.name);
+        {           
+            if (OnEnter != null)
+                OnEnter(transform);//这里的transform就是eventData.pointerEnter.transform，不需要写全
         }
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        ////pointerEnter是鼠标进入的gameObject对象
-        //if (eventData.pointerEnter.tag == "Grid")
-        //{
-        //    Debug.Log("鼠标离开了");
-        //}
+       if(eventData.pointerEnter.tag=="Grid")
+       {
+            if (OnExit != null)
+                OnExit();
+       }
     }
 }

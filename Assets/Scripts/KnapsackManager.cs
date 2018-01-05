@@ -6,6 +6,7 @@ public class KnapsackManager : MonoBehaviour {
 
     private Dictionary<int, Item> ItemList = new Dictionary<int, Item>();
     public GridPanelUI GridPanelUI;
+    public ItemInfoUI ItemInfoUI;
 
     private static KnapsackManager _instance;
     public static KnapsackManager Instance {
@@ -16,7 +17,11 @@ public class KnapsackManager : MonoBehaviour {
     {
         //单例
         _instance = this;
+        //装载数据
         Load();
+        //添加事件监听
+        GridUI.OnEnter+=Grid_OnEnter;
+        GridUI.OnExit+=Grid_OnExit;
     }
 
     public void StoreItem(int itemId)
@@ -51,6 +56,8 @@ public class KnapsackManager : MonoBehaviour {
     /// <summary>
     /// 模拟从数据库中访问数据
     /// </summary>
+     
+    
     public void Load()
     {
         Weapon w1 = new Weapon(0,"大刀","锋利的杀猪刀",1000,500,"",100);
@@ -76,5 +83,25 @@ public class KnapsackManager : MonoBehaviour {
         ItemList.Add(a2.ID, a2);
         ItemList.Add(a3.ID, a3);
         ItemList.Add(a4.ID, a4);
+    }
+    
+    
+    /// <summary>
+    /// 鼠标进入事件监听函数
+    /// </summary>
+    public void Grid_OnEnter(Transform gridTransform)
+    {      
+        Item item = ItemModel.GetItem(gridTransform.name);
+        if(item==null)            
+            return;             
+        ItemInfoUI.UpdateItemInfo(item.Name);
+
+    }
+    /// <summary>
+    /// 鼠标移出时间监听函数
+    /// </summary>
+    public void Grid_OnExit()
+    {
+        
     }
 }
