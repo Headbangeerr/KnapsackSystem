@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 
 public class KnapsackManager : MonoBehaviour {
@@ -7,12 +8,26 @@ public class KnapsackManager : MonoBehaviour {
     private Dictionary<int, Item> ItemList = new Dictionary<int, Item>();
     public GridPanelUI GridPanelUI;
     public ItemInfoUI ItemInfoUI;
+    private bool IsShow=false;
 
     private static KnapsackManager _instance;
     public static KnapsackManager Instance {
         get { return _instance; }
     }
 
+    private void Update()
+    {      
+
+        if (IsShow)
+        {
+            Vector2 position;
+            //使用转换工具，将鼠标位置坐标转化为UI控件的相对坐标
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(GameObject.Find("KnapsackUI").transform as RectTransform, Input.mousePosition, null, out position);
+            ItemInfoUI.Show();
+            ItemInfoUI.SetLocalPosition(position);
+
+        }                       
+    }
     private void Awake()
     {
         //单例
@@ -20,8 +35,8 @@ public class KnapsackManager : MonoBehaviour {
         //装载数据
         Load();
         //添加事件监听
-        GridUI.OnEnter+=Grid_OnEnter;
-        GridUI.OnExit+=Grid_OnExit;
+        GridUI.OnEnter += Grid_OnEnter;
+        GridUI.OnExit += Grid_OnExit;
     }
 
     public void StoreItem(int itemId)
@@ -55,9 +70,7 @@ public class KnapsackManager : MonoBehaviour {
     }
     /// <summary>
     /// 模拟从数据库中访问数据
-    /// </summary>
-     
-    
+    /// </summary>      
     public void Load()
     {
         Weapon w1 = new Weapon(0,"大刀","锋利的杀猪刀",1000,500,"",100);
@@ -89,19 +102,48 @@ public class KnapsackManager : MonoBehaviour {
     /// <summary>
     /// 鼠标进入事件监听函数
     /// </summary>
-    public void Grid_OnEnter(Transform gridTransform)
+    private void Grid_OnEnter(Transform gridTransform)
     {      
         Item item = ItemModel.GetItem(gridTransform.name);
         if(item==null)            
-            return;             
-        ItemInfoUI.UpdateItemInfo(item.Name);
+            return;
+        string text=GetItemInfo(item);
+        Debug.Log("为空："+(ItemInfoUI==null));
+        ItemInfoUI.UpdateItemInfo(text);
 
     }
     /// <summary>
-    /// 鼠标移出时间监听函数
+    /// 鼠标移出事件监听函数
     /// </summary>
-    public void Grid_OnExit()
+    private  void Grid_OnExit()
     {
-        
+        ItemInfoUI.Hide();
+    }
+
+    private string GetItemInfo(Item item)
+    {
+        if (item == null)
+            return "";
+        StringBuilder sb = new StringBuilder();
+        sb.AppendFormat("<color=red>{0}</color>\n\n", item.Name);
+        switch (item.ItemType)
+        {
+            case Item.Type.Armor:
+                Aromor aromor = item as Aromor;
+                sb.AppendFormat("力量：{0}\n防御：{1}\n敏捷：{2}\n\n", aromor.Power, aromor.Defend, aromor.Agility);
+                break;
+            case Item.Type.Consumable:
+                Consumable consumable = item as Consumable;
+                sb.AppendFormat("HP:{0}\nMP:{1}\n\n", consumable.BackHp, consumable.BackMp);
+                break;
+            case Item.Type.Weapon:
+                Weapon weapon = item as Weapon;
+                sb.AppendFormat("攻击力：{0}\n\n", weapon.Demage);
+                break;
+            default:break;
+        }
+        sb.AppendFormat("<size=25><color=white>购买价格：{0}\n出售价格：{1}</color></size>\n\n" +
+            "<color=yellow><size=20>描述：{2}</size></color>", item.BuyPrice, item.SellPrice, item.Description);
+        return sb.ToString();
     }
 }

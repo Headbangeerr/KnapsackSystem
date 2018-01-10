@@ -20,4 +20,8 @@ public class ItemInfoUI : MonoBehaviour {
     {
         gameObject.SetActive(false);
     }
+    public void SetLocalPosition(Vector2 position)
+    {
+        transform.localPosition = position;
+    }
 }
