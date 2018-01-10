@@ -23,7 +23,7 @@ public class KnapsackManager : MonoBehaviour {
             Vector2 position;
             //使用转换工具，将鼠标位置坐标转化为UI控件的相对坐标
             RectTransformUtility.ScreenPointToLocalPointInRectangle(GameObject.Find("KnapsackUI").transform as RectTransform, Input.mousePosition, null, out position);
-            ItemInfoUI.Show();
+            ItemInfoUI.Show();          
             ItemInfoUI.SetLocalPosition(position);
 
         }                       
@@ -108,9 +108,8 @@ public class KnapsackManager : MonoBehaviour {
         if(item==null)            
             return;
         string text=GetItemInfo(item);
-        Debug.Log("为空："+(ItemInfoUI==null));
         ItemInfoUI.UpdateItemInfo(text);
-
+        IsShow = true;
     }
     /// <summary>
     /// 鼠标移出事件监听函数
@@ -118,6 +117,7 @@ public class KnapsackManager : MonoBehaviour {
     private  void Grid_OnExit()
     {
         ItemInfoUI.Hide();
+        IsShow = false;
     }
 
     private string GetItemInfo(Item item)
