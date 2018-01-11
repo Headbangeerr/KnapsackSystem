@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
@@ -8,25 +9,13 @@ public class KnapsackManager : MonoBehaviour {
     private Dictionary<int, Item> ItemList = new Dictionary<int, Item>();
     public GridPanelUI GridPanelUI;
     public ItemInfoUI ItemInfoUI;
-    private bool IsShow=false;
+    public DragItemUI DragItemUI;
+    private bool IsShow=false;//装备信息显示标志位
+    private bool IsDrag = false;//装备拖动标志位
 
     private static KnapsackManager _instance;
     public static KnapsackManager Instance {
         get { return _instance; }
-    }
-
-    private void Update()
-    {      
-
-        if (IsShow)
-        {
-            Vector2 position;
-            //使用转换工具，将鼠标位置坐标转化为UI控件的相对坐标
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(GameObject.Find("KnapsackUI").transform as RectTransform, Input.mousePosition, null, out position);
-            ItemInfoUI.Show();
-            ItemInfoUI.SetLocalPosition(position);
-
-        }                       
     }
     private void Awake()
     {
@@ -34,11 +23,54 @@ public class KnapsackManager : MonoBehaviour {
         _instance = this;
         //装载数据
         Load();
+        //获取ItemInfo物体上的ItemInfoUI组件，通过public方式获取会造成空指针异常？未解之谜？！
+        ItemInfoUI = GameObject.Find("ItemInfo").GetComponent<ItemInfoUI>();
+        DragItemUI = GameObject.Find("DragItem").GetComponent<DragItemUI>();    
         //添加事件监听
-        GridUI.OnEnter += Grid_OnEnter;
-        GridUI.OnExit += Grid_OnExit;
+        GridUI.OnEnter = GridUI_OnEnter;
+        GridUI.OnExit = GridUI_OnExit;
+        GridUI.OnLeftBeginDrag = GridUI_OnLeftBeginDrag;
+        GridUI.OnLeftEndDrag = GridUI_OnLeftEndDrag;
     }
 
+    private void Update()
+    {
+
+        if (IsDrag)
+        {
+            Vector2 position;
+            //使用转换工具，将鼠标位置坐标转化为UI控件的相对坐标
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(GameObject.Find("KnapsackUI").transform as RectTransform, Input.mousePosition, null, out position);
+            DragItemUI.Show();
+            DragItemUI.SetLocalPosition(position);
+        }
+        else if (IsShow)
+        {
+            Vector2 position;
+            //使用转换工具，将鼠标位置坐标转化为UI控件的相对坐标
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(GameObject.Find("KnapsackUI").transform as RectTransform, Input.mousePosition, null, out position);
+            ItemInfoUI.Show();          
+            ItemInfoUI.SetLocalPosition(position);
+            //这里需要将ItemInfo的UI组件的中心设置在左上角
+        }                       
+    }
+   
+    public void PutIntoGrid(Item item ,Transform grid)
+    {
+        GameObject itemPfb = Resources.Load<GameObject>("Prefabs/Item");
+        //修改预制体的名字
+        itemPfb.GetComponent<ItemUI>().UpdateItemName(item.Name);
+        //在场景中示例化该物体
+        GameObject itemGo = GameObject.Instantiate(itemPfb);
+        itemGo.transform.SetParent(grid);
+        //设置与父物体的相对位置为零
+        itemGo.transform.localPosition = Vector3.zero;
+        //设置大小为原大小
+        itemGo.transform.localScale = Vector3.one;
+        //存入数据
+        ItemModel.StoreItem(grid.name, item);
+    }
+  
     public void StoreItem(int itemId)
     {
         if (!ItemList.ContainsKey(itemId))
@@ -46,10 +78,7 @@ public class KnapsackManager : MonoBehaviour {
             return;
         }
         Item temp = ItemList[itemId];
-        //使用Resources对象以Resources为根路径获取游戏物体
-        GameObject itemPfb = Resources.Load<GameObject>("Prefabs/Item");
-        //修改预制体的名字
-        itemPfb.GetComponent<ItemUI>().UpdateItemName(temp.Name);       
+          
         //通过GridPanelUI来获取一个空的格子
         Transform emptyGrid=GridPanelUI.GetEmptyGrid();
         if (emptyGrid == null)
@@ -57,16 +86,7 @@ public class KnapsackManager : MonoBehaviour {
             Debug.LogWarning("背包已满！");
             return;
         }
-        //在场景中示例化该物体
-        GameObject itemGo = GameObject.Instantiate(itemPfb);
-        itemGo.transform.SetParent(emptyGrid);
-        //设置与父物体的相对位置为零
-        itemGo.transform.localPosition = Vector3.zero;
-        //设置大小为原大小
-        itemGo.transform.localScale = Vector3.one;
-
-        ItemModel.StoreItem(emptyGrid.name, temp);
-
+        this.PutIntoGrid(temp, emptyGrid);       
     }
     /// <summary>
     /// 模拟从数据库中访问数据
@@ -97,29 +117,81 @@ public class KnapsackManager : MonoBehaviour {
         ItemList.Add(a3.ID, a3);
         ItemList.Add(a4.ID, a4);
     }
-    
-    
+
+    #region 事件回调方法
     /// <summary>
     /// 鼠标进入事件监听函数
     /// </summary>
-    private void Grid_OnEnter(Transform gridTransform)
+    private void GridUI_OnEnter(Transform gridTransform)
     {      
         Item item = ItemModel.GetItem(gridTransform.name);
         if(item==null)            
             return;
         string text=GetItemInfo(item);
-        Debug.Log("为空："+(ItemInfoUI==null));
         ItemInfoUI.UpdateItemInfo(text);
-
+        IsShow = true;
     }
     /// <summary>
     /// 鼠标移出事件监听函数
     /// </summary>
-    private  void Grid_OnExit()
+    private  void GridUI_OnExit()
     {
         ItemInfoUI.Hide();
+        IsShow = false;
     }
+    /// <summary>
+    /// 鼠标拖拽事件回调方法
+    /// </summary>
+    /// <param name="gridTransform"></param>
+    private void GridUI_OnLeftBeginDrag(Transform gridTransform)
+    {       
+        //如果被拖拽的对象没有子物体则直接返回
+        if (gridTransform.childCount == 0)
+            return;
+        else
+        {
+            Item item = ItemModel.GetItem(gridTransform.name);    
+            DragItemUI.UpdateItemName(item.Name);
+            Destroy(gridTransform.GetChild(0).gameObject);
+            IsDrag = true;
+        }
+    }
+    private void GridUI_OnLeftEndDrag(Transform beginGrid,Transform endGrid)
+    {
+        if (endGrid == null)//丢弃物品
+        {
+            ItemModel.DeleteItem(beginGrid.name);
+        }
+        else if (endGrid.tag == "Grid")//放入一个空的或有物体的格子中
+        {
+            if (endGrid.childCount == 0)//该格子为空
+            {
+                Item item = ItemModel.GetItem(beginGrid.name);
+                this.PutIntoGrid(item, endGrid);               
+                //在完成物品转移以后移除数据               
+                ItemModel.DeleteItem(beginGrid.name);
+            }
+            else//目标格子中已有物品
+            {
+                Item beginItem = ItemModel.GetItem(beginGrid.name);
+                Item endItem = ItemModel.GetItem(endGrid.name);
+                //把目标格子中的已有物品先删除掉
+                Destroy(endGrid.GetChild(0).gameObject);               
+                this.PutIntoGrid(beginItem, endGrid);
+                this.PutIntoGrid(endItem, beginGrid);               
+            }
+        }
+        else//放到背包外面
+        {
+            Item item = ItemModel.GetItem(beginGrid.name);
+            this.PutIntoGrid(item, beginGrid);
+        }
+        IsDrag = false;
+        DragItemUI.Hide();
+    }
+ 
 
+    #endregion
     private string GetItemInfo(Item item)
     {
         if (item == null)

@@ -7,8 +7,8 @@ public static class ItemModel {
     /// <summary>
     /// 放入背包一件物品
     /// </summary>
-    /// <param name="name"></param>
-    /// <param name="item"></param>
+    /// <param name="name">Grid's name</param>
+    /// <param name="item">object of item</param>
     public static  void  StoreItem(string name, Item item)
     {
         if(GridItem.ContainsKey(name))
