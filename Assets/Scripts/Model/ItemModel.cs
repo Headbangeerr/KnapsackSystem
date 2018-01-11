@@ -1,8 +1,11 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
+/// <summary>
+/// 该类用于模拟数据操作
+/// </summary>
 public static class ItemModel {
+
     private static Dictionary<string, Item> GridItem = new Dictionary<string, Item>();
     /// <summary>
     /// 放入背包一件物品

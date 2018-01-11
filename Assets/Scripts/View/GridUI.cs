@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using System;
-
+/// <summary>
+/// 分别继承名实现各种事件接口，这里需要注意的是IDragHandler所实现的OnDrag虽然没有用，但是这里也必须继承IDragHandler接口
+/// </summary>
 public class GridUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     ,IBeginDragHandler,IDragHandler,IEndDragHandler
 {
